@@ -3,8 +3,8 @@
 ##
 
 import os, time
-import requests
-from urllib.error import URLError,ContentTooShortError,HTTPError
+from selenium import webdriver
+from selenium.webdriver.options import Options
 from bs4 import BeautifulSoup
 
 class TranslationModule(object):
@@ -14,6 +14,8 @@ class TranslationModule(object):
         module_list = dir(module_name)  ## 查看该模块目录
         module_length = len(module_list)
         print(f"正在翻译 {module_name}模块，它有 {module_length}个功能。")
+
+
         for mothod in module_list:     ##  处理该目录功能
             translationmethod = translate(method)
             print(f"{module_name}.{method}----（{translationmethod}）\n")
@@ -23,20 +25,19 @@ class TranslationModule(object):
 ## 翻译目录中的方法
     def translate(method, num_retries = 2):
         url = f"https://translate.google.cn/?tl=ar#view=home&op=translate&sl=en&tl=zh-CN&text={method}"
-        user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/74.0.3729.169 Chrome/74.0.3729.169 Safari/537.36"
-        headers = {'User_Agent': user_agent}
-        try:
-            resq = requests.get(url, headers = headers, timeout = 10)
-            html = resq.text
-        except (URLError, HTTPError, ContentTooShortError) as e:
-            print ("下载错误原因： ", e.reason)
-            html = None
-            if num_retries > 0 :
-                if hasattr(e, "code") and 500 <= e.code <= 600 :
-                    return translate(method, num_retries - 1)
+        ##user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/74.0.3729.169 Chrome/74.0.3729.169 Safari/537.36"
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
+        browser = webdriver.Chrome(chrome_options = chrome_options)
 
+        browser.get(url)
+        html = browser.page_source
+        browser.close()
         soup = BeautifulSoup(html, 'lxml')
-        translationmean = soup.find_all('span', class_="tlid-translation translation")
+        word = soup.find('span', {'class': 'tlid-translation translation'})
+
+        return word.text
 
 
 ## 设置存储路径
